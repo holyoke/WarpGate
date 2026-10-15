@@ -398,6 +398,16 @@ const routes: RouteRecordRaw[] = [
 
   // ==================== Admin Routes ====================
   {
+    path: '/admin/testing/keys', name: 'AdminTestKeys',
+    component: () => import('@/views/user/KeysView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, titleKey: 'workspace.testKeys', descriptionKey: 'workspace.testingNotice' }
+  },
+  {
+    path: '/admin/testing/usage', name: 'AdminTestUsage',
+    component: () => import('@/views/user/UsageView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, titleKey: 'workspace.testUsage', descriptionKey: 'workspace.testingNotice' }
+  },
+  {
     path: '/admin/ui-preview',
     name: 'AdminUIPreview',
     component: () => import('@/views/admin/UIPreviewView.vue'),

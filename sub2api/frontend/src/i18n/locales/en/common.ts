@@ -1,4 +1,10 @@
 export default {
+  workspace: {
+    enterUserCenter: 'Enter user center', backToAdmin: 'Back to administration', accountSecurity: 'Account & security',
+    interfaceTesting: 'API testing', testKeys: 'Test API keys', testUsage: 'Test usage',
+    testingNotice: 'Test keys and usage belong to the current account, not the entire platform.',
+    personalNotice: 'You are viewing the user center with your administrator account. Balances, subscriptions and orders belong only to this account and do not represent platform revenue.'
+  },
   common: {
     loading: 'Loading...',
     submitting: 'Submitting...',
