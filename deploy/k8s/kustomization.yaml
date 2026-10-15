@@ -7,3 +7,8 @@ resources:
   - database.yaml
   - redis.yaml
   - application.yaml
+  - release-agent.yaml
+configMapGenerator:
+  - name: release-agent-code
+    files:
+      - agent.py=agent/agent.py

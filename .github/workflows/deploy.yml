@@ -23,6 +23,9 @@ jobs:
         working-directory: sub2api/frontend
     steps:
       - uses: actions/checkout@v4
+      - name: Test in-cluster release controller
+        working-directory: .
+        run: python3 -m unittest discover -s deploy/k8s/agent -p 'test_*.py'
       - uses: pnpm/action-setup@v4
         with:
           version: 9.15.9

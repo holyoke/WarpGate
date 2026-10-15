@@ -1,0 +1,111 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: release-agent
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: release-agent
+rules:
+  - apiGroups: [apps]
+    resources: [deployments]
+    resourceNames: [warpgate]
+    verbs: [get, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: release-agent
+subjects:
+  - kind: ServiceAccount
+    name: release-agent
+    namespace: warpgate
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: release-agent
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: release-agent
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: warpgate-release-agent
+  template:
+    metadata:
+      labels:
+        app: warpgate-release-agent
+    spec:
+      serviceAccountName: release-agent
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: warpgate
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: agent
+          image: ghcr.io/astral-sh/uv@sha256:a57a1dd942a83dc96d338f7479be4b4cbca018c476eae7e6f3f1d3603e90aaf8
+          command: [python3, -u, /opt/agent/agent.py]
+          env:
+            - { name: GITHUB_REPOSITORY, value: holyoke/WarpGate }
+            - { name: GITHUB_WORKFLOW, value: deploy.yml }
+            - { name: GITHUB_BRANCH, value: master }
+            - { name: IMAGE_REPOSITORY, value: holyoke/warpgate }
+            - { name: POLL_INTERVAL_SECONDS, value: '120' }
+            - { name: ROLLOUT_TIMEOUT_SECONDS, value: '600' }
+            - { name: PYTHONDONTWRITEBYTECODE, value: '1' }
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          volumeMounts:
+            - name: source
+              mountPath: /opt/agent
+              readOnly: true
+            - name: temporary
+              mountPath: /tmp
+          readinessProbe:
+            timeoutSeconds: 5
+            exec:
+              command: [python3, -c, "import os,time; assert time.time()-os.stat('/tmp/agent-heartbeat').st_mtime < 180"]
+            periodSeconds: 15
+          livenessProbe:
+            timeoutSeconds: 5
+            exec:
+              command: [python3, -c, "import os,time; assert time.time()-os.stat('/tmp/agent-heartbeat').st_mtime < 180"]
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            failureThreshold: 3
+      volumes:
+        - name: source
+          configMap:
+            name: release-agent-code
+        - name: temporary
+          emptyDir:
+            medium: Memory
+            sizeLimit: 4Mi

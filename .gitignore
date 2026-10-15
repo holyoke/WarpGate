@@ -1,3 +1,5 @@
 .local/
 .env
 sub2api-source.zip
+__pycache__/
+*.py[cod]

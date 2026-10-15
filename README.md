@@ -8,7 +8,9 @@
 
 镜像同时包含定制前端和后端，支持真实账号、用量计费和网关功能。实际模型调用需要部署后自行配置上游 API 渠道。GitHub Pages 无法承载这一完整平台；当前没有服务器，服务器部署任务保持关闭。
 
-服务器准备好后，按 [部署说明](deploy/README.md) 配置 GitHub Secrets 和 `DEPLOY_ENABLED=true`，即可在推送后自动部署。镜像使用提交 SHA 固定版本，并额外发布 `latest` 标签。
+当前内网 Kubernetes 测试集群已通过集群内发布控制器连接 CI：推送到 `master`，CI 全部成功后，控制器按固定摘要自动更新应用并检查健康状态。集群凭据不上传 GitHub，详见 [Kubernetes 持续发布说明](deploy/k8s/README.md)。
+
+SSH 服务器部署保留为可选方式：按 [部署说明](deploy/README.md) 配置 GitHub Secrets 和 `DEPLOY_ENABLED=true` 启用。当前此 SSH 任务关闭，Kubernetes 自动发布独立运行。
 
 已有 Kubernetes 集群时，也可使用 [Kubernetes 部署说明](deploy/k8s/README.md) 发布完整测试环境。
 
