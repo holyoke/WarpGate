@@ -10,6 +10,8 @@
 
 服务器准备好后，按 [部署说明](deploy/README.md) 配置 GitHub Secrets 和 `DEPLOY_ENABLED=true`，即可在推送后自动部署。镜像使用提交 SHA 固定版本，并额外发布 `latest` 标签。
 
+已有 Kubernetes 集群时，也可使用 [Kubernetes 部署说明](deploy/k8s/README.md) 发布完整测试环境。
+
 ## 本地启动
 
 安装 Node.js、Git 和 Docker Desktop，启动 Docker Desktop 后，在本目录运行：

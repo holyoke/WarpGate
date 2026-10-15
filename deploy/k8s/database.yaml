@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: warpgate-postgres
+  template:
+    metadata:
+      labels:
+        app: warpgate-postgres
+    spec:
+      nodeSelector:
+        kubernetes.io/hostname: l20c-07-wanghuaizhen
+      containers:
+        - name: postgres
+          image: postgres:16-alpine
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: POSTGRES_USER
+              value: warpgate
+            - name: POSTGRES_DB
+              value: warpgate
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: warpgate-secrets
+                  key: POSTGRES_PASSWORD
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: '1'
+              memory: 1Gi
+          readinessProbe:
+            exec:
+              command: [pg_isready, -U, warpgate, -d, warpgate]
+            initialDelaySeconds: 5
+            periodSeconds: 5
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: postgres-data-ready
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  selector:
+    app: warpgate-postgres
+  ports:
+    - port: 5432
+      targetPort: 5432
