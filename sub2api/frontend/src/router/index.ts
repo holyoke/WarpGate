@@ -398,6 +398,12 @@ const routes: RouteRecordRaw[] = [
 
   // ==================== Admin Routes ====================
   {
+    path: '/admin/ui-preview',
+    name: 'AdminUIPreview',
+    component: () => import('@/views/admin/UIPreviewView.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true, title: 'Interface preview', titleKey: 'uiPreview.title', descriptionKey: 'uiPreview.demoOnly' }
+  },
+  {
     path: '/admin',
     redirect: '/admin/dashboard'
   },
