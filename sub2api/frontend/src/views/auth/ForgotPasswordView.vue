@@ -11,8 +11,15 @@
         </p>
       </div>
 
+      <p v-if="!settingsLoaded" role="status" class="text-center text-sm text-gray-500">
+        {{ t('common.loading') }}
+      </p>
+      <div v-else-if="settingsError || !passwordResetEnabled" role="status" class="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+        {{ settingsError ? t('auth.recoverySettingsFailed') : t('auth.recoveryUnavailable') }}
+      </div>
+
       <!-- Success State -->
-      <div v-if="isSubmitted" class="space-y-6">
+      <div v-else-if="isSubmitted" class="space-y-6">
         <div class="rounded-xl border border-green-200 bg-green-50 p-6 dark:border-green-800/50 dark:bg-green-900/20">
           <div class="flex flex-col items-center gap-4 text-center">
             <div class="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-800/50">
@@ -152,6 +159,9 @@ const appStore = useAppStore()
 const isLoading = ref<boolean>(false)
 const isSubmitted = ref<boolean>(false)
 const errorMessage = ref<string>('')
+const settingsLoaded = ref(false)
+const settingsError = ref(false)
+const passwordResetEnabled = ref(false)
 
 // Public settings
 const turnstileEnabled = ref<boolean>(false)
@@ -207,6 +217,7 @@ watch(validationToastMessage, (value, previousValue) => {
 onMounted(async () => {
   try {
     const settings = await getPublicSettings()
+    passwordResetEnabled.value = settings.password_reset_enabled && !settings.backend_mode_enabled
     turnstileEnabled.value = settings.turnstile_enabled
     turnstileSiteKey.value = settings.turnstile_site_key || ''
     tencentCaptchaEnabled.value = settings.tencent_captcha_enabled === true
@@ -217,7 +228,10 @@ onMounted(async () => {
     aliyunCaptchaPrefix.value = settings.aliyun_captcha_prefix || ''
     aliyunCaptchaRegion.value = settings.aliyun_captcha_region || 'cn'
   } catch (error) {
+    settingsError.value = true
     console.error('Failed to load public settings:', error)
+  } finally {
+    settingsLoaded.value = true
   }
 })
 
@@ -288,6 +302,7 @@ function validateForm(): boolean {
 // ==================== Form Handlers ====================
 
 async function handleSubmit(): Promise<void> {
+  if (!settingsLoaded.value || settingsError.value || !passwordResetEnabled.value || isLoading.value) return
   errorMessage.value = ''
 
   if (!validateForm()) {

@@ -417,6 +417,8 @@ export default {
     // 忘记密码
     forgotPassword: '忘记密码？',
     forgotPasswordTitle: '重置密码',
+    recoveryUnavailable: '密码找回暂未开放，请联系管理员。管理员可在后台配置邮件服务并启用密码重置。',
+    recoverySettingsFailed: '暂时无法获取密码找回配置，请刷新页面后重试。',
     forgotPasswordHint: '输入您的邮箱地址，我们将向您发送密码重置链接。',
     sendResetLink: '发送重置链接',
     sendingResetLink: '发送中...',

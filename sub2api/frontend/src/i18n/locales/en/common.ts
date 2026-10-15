@@ -419,6 +419,8 @@ export default {
     // Forgot password
     forgotPassword: 'Forgot password?',
     forgotPasswordTitle: 'Reset Your Password',
+    recoveryUnavailable: 'Password recovery is currently unavailable. Please contact the administrator, who can configure email delivery and enable password reset in settings.',
+    recoverySettingsFailed: 'Unable to load password recovery settings. Please refresh the page and try again.',
     forgotPasswordHint: 'Enter your email address and we will send you a link to reset your password.',
     sendResetLink: 'Send Reset Link',
     sendingResetLink: 'Sending...',

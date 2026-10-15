@@ -37,7 +37,7 @@ jobs:
           cache-dependency-path: sub2api/frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - name: Test branding, routing and locale text
-        run: pnpm exec vitest run src/router/__tests__/title.spec.ts src/components/layout/__tests__/siteLogoSanitization.spec.ts src/i18n/__tests__/openaiFastPolicyLocales.spec.ts
+        run: pnpm exec vitest run src/router/__tests__/title.spec.ts src/components/layout/__tests__/siteLogoSanitization.spec.ts src/i18n/__tests__/openaiFastPolicyLocales.spec.ts src/views/auth/__tests__/ForgotPasswordView.spec.ts
       - name: Typecheck and build application frontend
         run: pnpm run build
       - uses: actions/upload-artifact@v4

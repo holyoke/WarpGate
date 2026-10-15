@@ -63,6 +63,9 @@
           >
             {{ isAuthenticated ? t('home.dashboard') : t('home.login') }}
           </router-link>
+          <router-link v-if="showRegistrationEntry" to="/register" class="btn btn-primary text-sm">
+            {{ t('auth.signUp') }}
+          </router-link>
         </div>
       </nav>
     </header>
@@ -215,14 +218,17 @@
               {{ siteSubtitle }}
             </p>
 
-            <!-- CTA Button -->
-            <div>
+            <!-- Account actions -->
+            <div class="flex flex-wrap justify-center gap-3 lg:justify-start">
               <router-link
                 :to="isAuthenticated ? dashboardPath : '/login'"
                 class="btn btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/30"
               >
                 {{ isAuthenticated ? t('home.goToDashboard') : t('home.getStarted') }}
                 <Icon name="arrowRight" size="md" class="ml-2" :stroke-width="2" />
+              </router-link>
+              <router-link v-if="showRegistrationEntry" to="/register" class="btn btn-secondary px-8 py-3 text-base">
+                {{ t('auth.signUp') }}
               </router-link>
             </div>
           </div>
@@ -498,6 +504,11 @@ const { t } = useI18n()
 
 const authStore = useAuthStore()
 const appStore = useAppStore()
+const showRegistrationEntry = computed(() =>
+  !authStore.isAuthenticated &&
+  appStore.cachedPublicSettings?.registration_enabled === true &&
+  !appStore.cachedPublicSettings?.backend_mode_enabled
+)
 
 // Site settings - directly from appStore (already initialized from injected config)
 const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appStore.siteName || 'WarpGate')
