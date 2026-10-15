@@ -37,7 +37,7 @@ jobs:
           cache-dependency-path: sub2api/frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - name: Test branding, routing and locale text
-        run: pnpm exec vitest run src/router/__tests__/title.spec.ts src/components/layout/__tests__/siteLogoSanitization.spec.ts src/i18n/__tests__/openaiFastPolicyLocales.spec.ts src/views/auth/__tests__/ForgotPasswordView.spec.ts src/views/user/__tests__/PaymentView.spec.ts src/api/__tests__/client.spec.ts
+        run: pnpm exec vitest run src/router/__tests__/title.spec.ts src/components/layout/__tests__/siteLogoSanitization.spec.ts src/i18n/__tests__/openaiFastPolicyLocales.spec.ts src/views/auth/__tests__/ForgotPasswordView.spec.ts src/views/user/__tests__/PaymentView.spec.ts src/api/__tests__/client.spec.ts src/__tests__/themeContrast.spec.js src/utils/__tests__/workspace.spec.ts
       - name: Typecheck and build application frontend
         run: pnpm run build
       - uses: actions/upload-artifact@v4
@@ -98,8 +98,10 @@ jobs:
           IMAGE: ${{ steps.image.outputs.ref }}
         run: |
           docker push "$IMAGE"
-          docker tag "$IMAGE" "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
-          docker push "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          if [ "$GITHUB_REF" = 'refs/heads/master' ]; then
+            docker tag "$IMAGE" "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+            docker push "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          fi
       - name: Diagnostic logs on failure
         if: failure()
         run: |

@@ -1,0 +1,49 @@
+/* WarpGate surfaces: readable in both themes, with lime reserved for actions. */
+@layer base {
+  :root {
+    --wg-canvas: #f4f7f4;
+    --wg-panel: #ffffff;
+    --wg-panel-subtle: #edf1ed;
+    --wg-ink: #172018;
+    --wg-muted: #536057;
+    --wg-line: #cbd3cc;
+    --wg-action: #9cff45;
+    --wg-action-ink: #15220c;
+  }
+  :root.dark {
+    --wg-canvas: #0b0e0c;
+    --wg-panel: #111712;
+    --wg-panel-subtle: #1a211c;
+    --wg-ink: #eef2ed;
+    --wg-muted: #a1afa5;
+    --wg-line: #343f36;
+  }
+  :focus-visible { outline: 2px solid #477e26; outline-offset: 3px; }
+  .dark :focus-visible { outline-color: #9cff45; }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms; transition-duration: 0.01ms; scroll-behavior: auto; }
+  }
+}
+
+@layer utilities {
+  .btn.btn-primary {
+    background: var(--wg-action);
+    color: var(--wg-action-ink);
+    box-shadow: 0 1px 2px rgb(0 0 0 / 10%);
+  }
+  .btn.btn-primary:hover { background: #b0ff70; }
+  .btn, .input, .select, .sidebar-link { border-radius: 8px; }
+  .card { background: var(--wg-panel); border-color: var(--wg-line); border-radius: 10px; }
+  .glass, .dark .glass { background: var(--wg-panel); backdrop-filter: none; }
+  .sidebar { background: var(--wg-panel); border-color: var(--wg-line); }
+  .sidebar-link-active { box-shadow: inset 2px 0 #477e26; }
+  .dark .sidebar-link-active { box-shadow: inset 2px 0 #9cff45; }
+  .table-wrapper { border: 1px solid var(--wg-line); border-radius: 10px; background: var(--wg-panel); }
+  .table-wrapper th { color: var(--wg-muted); background: var(--wg-panel-subtle); font-weight: 600; }
+  .table-wrapper tbody { background: var(--wg-panel); }
+  .table-wrapper td { color: var(--wg-ink); font-variant-numeric: tabular-nums; }
+  .table-wrapper tbody tr:hover { background: var(--wg-panel-subtle); }
+  .badge { border: 1px solid currentColor; border-radius: 6px; }
+  .wg-muted { color: var(--wg-muted); }
+  .wg-panel { background: var(--wg-panel); border: 1px solid var(--wg-line); border-radius: 10px; }
+}

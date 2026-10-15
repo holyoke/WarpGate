@@ -54,11 +54,11 @@
         <LocaleSwitcher />
 
         <!-- Subscription Progress (for users with active subscriptions; not mounted at all when the feature is off) -->
-        <SubscriptionProgressMini v-if="user && subscriptionFeatureEnabled" />
+        <SubscriptionProgressMini v-if="showPersonalBilling && subscriptionFeatureEnabled" />
 
         <!-- Balance Display -->
         <div
-          v-if="user"
+          v-if="showPersonalBilling"
           class="group relative hidden items-center gap-2 rounded-xl bg-primary-50 px-3 py-1.5 dark:bg-primary-900/20 sm:flex"
         >
           <svg
@@ -142,7 +142,7 @@
               </div>
 
               <!-- Balance (mobile only) -->
-              <div class="border-b border-gray-100 px-4 py-2 dark:border-dark-700 sm:hidden">
+              <div v-if="showPersonalBilling" class="border-b border-gray-100 px-4 py-2 dark:border-dark-700 sm:hidden">
                 <div class="text-xs text-gray-500 dark:text-dark-400">
                   {{ t('common.balance') }}
                 </div>
@@ -157,12 +157,16 @@
               <div class="py-1">
                 <router-link to="/profile" @click="closeDropdown" class="dropdown-item">
                   <Icon name="user" size="sm" />
-                  {{ t('nav.profile') }}
+                  {{ t(authStore.isAdmin ? 'workspace.accountSecurity' : 'nav.profile') }}
                 </router-link>
 
-                <router-link to="/keys" @click="closeDropdown" class="dropdown-item">
+                <router-link v-if="authStore.isAdmin && !appStore.backendModeEnabled" :to="inUserWorkspace ? '/admin/dashboard' : '/dashboard'" @click="closeDropdown" class="dropdown-item">
+                  <Icon name="grid" size="sm" />
+                  {{ t(inUserWorkspace ? 'workspace.backToAdmin' : 'workspace.enterUserCenter') }}
+                </router-link>
+                <router-link :to="authStore.isAdmin && !inUserWorkspace ? '/admin/testing/keys' : '/keys'" @click="closeDropdown" class="dropdown-item">
                   <Icon name="key" size="sm" />
-                  {{ t('nav.apiKeys') }}
+                  {{ t(authStore.isAdmin && !inUserWorkspace ? 'workspace.testKeys' : 'nav.apiKeys') }}
                 </router-link>
 
               </div>
@@ -247,6 +251,7 @@ import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import { resolveRouteMetaKeys } from '@/router/title'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
+import { isUserWorkspace } from '@/utils/workspace'
 
 const router = useRouter()
 const route = useRoute()
@@ -257,6 +262,8 @@ const adminSettingsStore = useAdminSettingsStore()
 const onboardingStore = useOnboardingStore()
 
 const user = computed(() => authStore.user)
+const inUserWorkspace = computed(() => isUserWorkspace(authStore.isAdmin, route.path))
+const showPersonalBilling = computed(() => !!user.value && inUserWorkspace.value)
 const dropdownOpen = ref(false)
 const dropdownRef = ref<HTMLElement | null>(null)
 const contactInfo = computed(() => appStore.contactInfo)
@@ -304,6 +311,7 @@ const routeMetaKeys = computed(() => resolveRouteMetaKeys(route, {
 }))
 
 const pageTitle = computed(() => {
+  if (authStore.isAdmin && route.path === '/profile') return t('workspace.accountSecurity')
   // For custom pages, use the menu item's label instead of generic "自定义页面"
   if (route.name === 'CustomPage') {
     const id = route.params.id as string

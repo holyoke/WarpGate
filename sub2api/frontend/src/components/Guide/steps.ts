@@ -175,7 +175,7 @@ export const getAdminSteps = (t: (key: string) => string, isSimpleMode = false):
 
   // ========== 第三部分：创建API密钥 ==========
   {
-    element: '[data-tour="sidebar-my-keys"]',
+    element: '[data-tour="sidebar-test-keys"]',
     popover: {
       title: t('onboarding.admin.keyManage.title'),
       description: t('onboarding.admin.keyManage.description'),

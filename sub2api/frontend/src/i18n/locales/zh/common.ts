@@ -1,4 +1,10 @@
 export default {
+  workspace: {
+    enterUserCenter: '进入用户中心', backToAdmin: '返回运营后台', accountSecurity: '账号与安全',
+    interfaceTesting: '接口测试', testKeys: '测试 API 密钥', testUsage: '测试调用记录',
+    testingNotice: '仅查看当前账号的测试密钥与调用记录，不代表平台总用量。',
+    personalNotice: '正在以当前管理员账号体验用户中心。此处余额、订阅和订单仅属于当前账号，不代表平台收入。'
+  },
   common: {
     loading: '加载中...',
     submitting: '提交中...',

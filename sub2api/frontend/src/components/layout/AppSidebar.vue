@@ -31,8 +31,12 @@
 
     <!-- Navigation -->
     <nav ref="sidebarNavRef" class="sidebar-nav scrollbar-hide">
+      <router-link v-if="isAdmin && (!appStore.backendModeEnabled || inUserWorkspace)" :to="inUserWorkspace ? '/admin/dashboard' : '/dashboard'" :aria-label="t(inUserWorkspace ? 'workspace.backToAdmin' : 'workspace.enterUserCenter')" :title="t(inUserWorkspace ? 'workspace.backToAdmin' : 'workspace.enterUserCenter')" class="sidebar-link mb-4 border border-gray-200 dark:border-dark-700" @click="handleMenuItemClick(inUserWorkspace ? '/admin/dashboard' : '/dashboard')">
+        <DashboardIcon class="h-5 w-5 flex-shrink-0" />
+        <span v-if="!sidebarCollapsed">{{ t(inUserWorkspace ? 'workspace.backToAdmin' : 'workspace.enterUserCenter') }}</span>
+      </router-link>
       <!-- Admin View: Admin menu first, then personal menu -->
-      <template v-if="isAdmin">
+      <template v-if="isAdmin && !inUserWorkspace">
         <!-- Admin Section -->
         <div class="sidebar-section">
           <template v-for="item in adminNavItems" :key="item.path">
@@ -40,6 +44,7 @@
             <template v-if="item.children?.length">
               <button
                 type="button"
+                :data-tour="item.path === '/admin/testing/keys' ? 'sidebar-test-keys' : undefined"
                 class="sidebar-link mb-1 w-full"
                 :class="{
                   'sidebar-link-active': isGroupActive(item) && !isGroupExpanded(item),
@@ -101,29 +106,6 @@
           </template>
         </div>
 
-        <!-- Personal Section for Admin (hidden in simple mode) -->
-        <div v-if="!authStore.isSimpleMode" class="sidebar-section">
-          <div class="sidebar-section-title" :class="{ 'sidebar-section-title-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
-            <span class="sidebar-section-title-text" :class="{ 'sidebar-section-title-text-collapsed': sidebarCollapsed }">
-              {{ t('nav.myAccount') }}
-            </span>
-          </div>
-
-          <router-link
-            v-for="item in personalNavItems"
-            :key="item.path"
-            :to="item.path"
-            class="sidebar-link mb-1"
-            :class="{ 'sidebar-link-active': isActive(item.path), 'sidebar-link-collapsed': sidebarCollapsed }"
-            :title="sidebarCollapsed ? item.label : undefined"
-            :data-tour="item.path === '/keys' ? 'sidebar-my-keys' : undefined"
-            @click="handleMenuItemClick(item.path)"
-          >
-            <span v-if="item.iconSvg" class="h-5 w-5 flex-shrink-0 sidebar-svg-icon" v-html="sanitizeSvg(item.iconSvg)"></span>
-            <component v-else :is="item.icon" class="h-5 w-5 flex-shrink-0" />
-            <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{ item.label }}</span>
-          </router-link>
-        </div>
       </template>
 
       <!-- Regular User View -->
@@ -197,6 +179,7 @@ import { sanitizeSvg } from '@/utils/sanitize'
 import { sanitizeUrl } from '@/utils/url'
 import { FeatureFlags, makeSidebarFlag } from '@/utils/featureFlags'
 import { resolveSiteBillingMode } from '@/utils/siteBillingMode'
+import { isUserWorkspace } from '@/utils/workspace'
 import { useBatchImageAccess } from '@/composables/useBatchImageAccess'
 
 interface NavItem {
@@ -248,10 +231,11 @@ const { canUseBatchImage, refreshBatchImageAccess } = useBatchImageAccess()
 const sidebarCollapsed = computed(() => appStore.sidebarCollapsed)
 const mobileOpen = computed(() => appStore.mobileOpen)
 const isAdmin = computed(() => authStore.isAdmin)
+const inUserWorkspace = computed(() => isUserWorkspace(isAdmin.value, route.path))
 const sidebarNavRef = ref<HTMLElement | null>(null)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 
-const homePath = computed(() => (isAdmin.value ? '/admin/dashboard' : '/dashboard'))
+const homePath = computed(() => (isAdmin.value && !inUserWorkspace.value ? '/admin/dashboard' : '/dashboard'))
 
 // Per-group expand/collapse overrides. A group with no entry follows the
 // automatic behavior (expanded while the active route is one of its children);
@@ -710,8 +694,7 @@ const flagOpsMonitoring = () => adminSettingsStore.opsMonitoringEnabled
 const flagAdminPayment = () => adminSettingsStore.paymentEnabled
 const flagBatchImageAccess = () => canUseBatchImage.value
 
-// buildSelfNavItems 构造用户自己的导航项（用户端主菜单和管理员的"我的账户"子菜单共享这组声明）。
-// withDashboard=true 时包含仪表盘（用户端），false 时不含（管理员的个人区已经有独立仪表盘入口）。
+// 用户中心导航；管理员需明确进入用户中心后才使用这组个人消费入口。
 //
 // 条目顺序：密钥 → 用量 → 可用渠道 → 渠道状态 → 订阅/支付 → 兑换/资料。
 // 可用渠道紧挨渠道状态之上，让用户"先看自己能用什么、再看对应状态"。
@@ -751,11 +734,6 @@ function finalizeNav(items: NavItem[]): NavItem[] {
 // User navigation items (for regular users)
 const userNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(true)))
 
-// Personal navigation items (for admin's "My Account" section, without Dashboard).
-// Admins access 可用渠道 from this section just like regular users — there is no
-// separate admin entry, since the page is purely a user-facing view.
-const personalNavItems = computed((): NavItem[] => finalizeNav(buildSelfNavItems(false)))
-
 // Custom menu items filtered by visibility
 const customMenuItemsForUser = computed(() => {
   const items = appStore.cachedPublicSettings?.custom_menu_items ?? []
@@ -774,6 +752,10 @@ const customMenuItemsForAdmin = computed(() => {
 const adminNavItems = computed((): NavItem[] => {
   const baseItems: NavItem[] = [
     { path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
+    { path: '/admin/testing/keys', label: t('workspace.interfaceTesting'), icon: KeyIcon, children: [
+      { path: '/admin/testing/keys', label: t('workspace.testKeys'), icon: KeyIcon },
+      { path: '/admin/testing/usage', label: t('workspace.testUsage'), icon: ChartIcon }
+    ] },
     { path: '/admin/ops', label: t('nav.ops'), icon: ChartIcon, featureFlag: flagOpsMonitoring },
     { path: '/admin/users', label: t('nav.users'), icon: UsersIcon, hideInSimpleMode: true },
     { path: '/admin/groups', label: t('nav.groups'), icon: FolderIcon },
@@ -842,7 +824,6 @@ const adminNavItems = computed((): NavItem[] => {
   // 简单模式下，在系统设置前插入 API密钥
   if (authStore.isSimpleMode) {
     const filtered = visible.filter(item => !item.hideInSimpleMode)
-    filtered.push({ path: '/keys', label: t('nav.apiKeys'), icon: KeyIcon })
     filtered.push({ path: '/admin/settings', label: t('nav.settings'), icon: CogIcon })
     for (const cm of customMenuItemsForAdmin.value) {
       filtered.push({ path: `/custom/${cm.id}`, label: cm.label, icon: null, iconSvg: cm.icon_svg })
