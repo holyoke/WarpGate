@@ -1,0 +1,149 @@
+name: WarpGate CI/CD
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warpgate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: sub2api/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: sub2api/frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - name: Test branding, routing and locale text
+        run: pnpm exec vitest run src/router/__tests__/title.spec.ts src/components/layout/__tests__/siteLogoSanitization.spec.ts src/i18n/__tests__/openaiFastPolicyLocales.spec.ts
+      - name: Typecheck and build application frontend
+        run: pnpm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: warpgate-frontend
+          path: sub2api/backend/internal/web/dist
+          retention-days: 14
+
+  image:
+    if: github.event_name != 'pull_request'
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      ref: ${{ steps.image.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Choose immutable image tag
+        id: image
+        run: echo "ref=ghcr.io/${GITHUB_REPOSITORY,,}:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build complete Go application with embedded WarpGate UI
+        uses: docker/build-push-action@v6
+        with:
+          context: ./sub2api
+          load: true
+          tags: ${{ steps.image.outputs.ref }}
+          build-args: |
+            VERSION=0.1.0-${{ github.sha }}
+            COMMIT=${{ github.sha }}
+          labels: |
+            org.opencontainers.image.title=WarpGate
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Start complete stack and verify administrator login
+        env:
+          APP_IMAGE: ${{ steps.image.outputs.ref }}
+          POSTGRES_PASSWORD: ci-only-database-password
+          REDIS_PASSWORD: ci-only-redis-password
+          ADMIN_EMAIL: ci@example.invalid
+          ADMIN_PASSWORD: ci-only-administrator-password
+          JWT_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          TOTP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+          INITIALIZE_BRAND: 'true'
+        run: |
+          docker compose -p warpgate-ci -f deploy/compose.server.yaml up -d --wait --wait-timeout 240
+          python3 deploy/smoke.py
+      - name: Publish verified image
+        env:
+          IMAGE: ${{ steps.image.outputs.ref }}
+        run: |
+          docker push "$IMAGE"
+          docker tag "$IMAGE" "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+          docker push "ghcr.io/${GITHUB_REPOSITORY,,}:latest"
+      - name: Diagnostic logs on failure
+        if: failure()
+        run: |
+          for container in $(docker ps -aq --filter label=com.docker.compose.project=warpgate-ci); do
+            docker logs --tail 80 "$container" || true
+          done
+
+  deploy:
+    if: github.ref == 'refs/heads/master' && vars.DEPLOY_ENABLED == 'true'
+    needs: image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: read
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH || '/opt/warpgate' }}
+      IMAGE: ${{ needs.image.outputs.ref }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure dedicated SSH identity
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          SSH_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$DEPLOY_HOST" && test -n "$DEPLOY_USER" && test -n "$SSH_KEY" && test -n "$SSH_HOSTS"
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9.-]+$ ]]
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          [[ "$DEPLOY_PORT" =~ ^[0-9]+$ ]]
+          [[ "$DEPLOY_PATH" =~ ^/[a-zA-Z0-9_/-]+$ ]]
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_HOSTS" > ~/.ssh/known_hosts
+      - name: Upload deployment files
+        run: |
+          ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp -P "$DEPLOY_PORT" deploy/compose.server.yaml deploy/deploy-server.sh deploy/smoke.py "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+      - name: Pull verified image using temporary registry credentials
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          printf '%s' "$REGISTRY_TOKEN" | ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "set -eu; export DOCKER_CONFIG=\$(mktemp -d); trap 'rm -f \"\$DOCKER_CONFIG/config.json\"; rmdir \"\$DOCKER_CONFIG\"' EXIT; docker login ghcr.io -u '${{ github.actor }}' --password-stdin; docker pull '$IMAGE'"
+      - name: Deploy and health check
+        run: ssh -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "cd '$DEPLOY_PATH' && bash deploy-server.sh '$IMAGE'"

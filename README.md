@@ -2,6 +2,14 @@
 
 基于 [Wei-Shaw/Sub2API](https://github.com/Wei-Shaw/sub2api) 开发。上游源码位于 `sub2api/`，保留其 LGPL-3.0 许可证。
 
+## CI/CD 与服务器部署
+
+`.github/workflows/deploy.yml` 在推送到 `master`、提交 Pull Request 或手动触发时，执行相关测试、TypeScript 检查和前端构建。推送和手动运行还会构建完整 Go 应用镜像，启动 PostgreSQL、Redis 和应用，验证健康检查、管理员登录及品牌设置后，发布至 `ghcr.io/holyoke/warpgate`。
+
+镜像同时包含定制前端和后端，支持真实账号、用量计费和网关功能。实际模型调用需要部署后自行配置上游 API 渠道。GitHub Pages 无法承载这一完整平台；当前没有服务器，服务器部署任务保持关闭。
+
+服务器准备好后，按 [部署说明](deploy/README.md) 配置 GitHub Secrets 和 `DEPLOY_ENABLED=true`，即可在推送后自动部署。镜像使用提交 SHA 固定版本，并额外发布 `latest` 标签。
+
 ## 本地启动
 
 安装 Node.js、Git 和 Docker Desktop，启动 Docker Desktop 后，在本目录运行：
