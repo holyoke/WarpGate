@@ -87,7 +87,6 @@ jobs:
           ADMIN_PASSWORD: ci-only-administrator-password
           JWT_SECRET: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
           TOTP_ENCRYPTION_KEY: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-          INITIALIZE_BRAND: 'true'
         run: |
           docker compose -p warpgate-ci -f deploy/compose.server.yaml up -d --wait --wait-timeout 240
           python3 deploy/smoke.py

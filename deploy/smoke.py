@@ -23,11 +23,5 @@ session = request('/api/v1/auth/login', {
 })['data']
 token = session['access_token']
 assert request('/api/v1/auth/me', token=token)['data']['role'] == 'admin'
-if os.environ.get('INITIALIZE_BRAND') == 'true':
-    request('/api/v1/admin/settings', {
-        'site_name': 'WarpGate',
-        'site_subtitle': '连接模型，让灵感即刻运行',
-        'site_logo': '/logo.svg',
-    }, token, 'PUT')
 assert request('/api/v1/settings/public')['data']['site_name'] == 'WarpGate'
 print('Health, administrator login and WarpGate branding verified.')

@@ -32,8 +32,6 @@ if ! "${project[@]}" up -d --wait --wait-timeout 240; then
   fi
   exit 1
 fi
-if [ ! -f .brand-initialized ]; then export INITIALIZE_BRAND=true; fi
 python3 smoke.py
-touch .brand-initialized
 printf '%s\n' "$APP_IMAGE" > deployed-image.txt
 echo 'WarpGate deployment verified. Initial administrator credentials are in the server .env file.'
