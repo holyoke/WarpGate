@@ -296,6 +296,32 @@ async function mountSubscriptionPlanList(planCount: number) {
   return wrapper
 }
 
+describe('PaymentView without payment providers', () => {
+  it('keeps amount selection and code redemption visible without allowing checkout', async () => {
+    vi.useRealTimers()
+    appStoreState.setPublicSettings({ subscription_enabled: true })
+    routeState.query = {}
+    window.localStorage.clear()
+    createOrder.mockReset()
+    getCheckoutInfo.mockReset().mockResolvedValue(checkoutInfoFixture({ methods: {} }))
+    const wrapper = shallowMount(PaymentView, {
+      global: { stubs: {
+        AppLayout: { template: '<div><slot /></div>' },
+        RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' },
+        Teleport: true,
+      } },
+    })
+    await flushPromises()
+    expect(wrapper.text()).toContain('payment.onlineRechargeUnavailable')
+    expect(wrapper.get('a[href="/redeem"]').exists()).toBe(true)
+    expect(wrapper.findComponent(AmountInput).exists()).toBe(true)
+    const checkoutButton = wrapper.findAll('button').find(button => button.text().includes('payment.createOrder'))!
+    expect(checkoutButton.attributes('disabled')).toBeDefined()
+    expect(createOrder).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+})
+
 describe('PaymentView help text', () => {
   beforeEach(() => {
     vi.useRealTimers()

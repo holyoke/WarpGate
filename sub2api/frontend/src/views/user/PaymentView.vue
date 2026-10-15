@@ -45,10 +45,16 @@
               <p class="mt-1 text-base font-semibold text-gray-900 dark:text-white">{{ user?.username || '' }}</p>
               <p class="mt-0.5 text-sm font-medium text-green-600 dark:text-green-400">{{ t('payment.currentBalance') }}: {{ user?.balance?.toFixed(2) || '0.00' }}</p>
             </div>
+            <router-link to="/redeem" class="card flex items-center justify-between gap-4 p-5 transition-colors hover:border-primary-400">
+              <div>
+                <p class="font-medium text-gray-900 dark:text-white">{{ t('dashboard.redeemCode') }}</p>
+                <p class="mt-1 text-sm text-gray-500">{{ t('dashboard.addBalanceWithCode') }}</p>
+              </div>
+              <span class="text-sm font-medium text-primary-600">{{ t('redeem.title') }} &rarr;</span>
+            </router-link>
             <div v-if="enabledMethods.length === 0" class="card py-16 text-center">
-              <p class="text-gray-500 dark:text-gray-400">{{ t('payment.notAvailable') }}</p>
+              <p class="text-gray-500 dark:text-gray-400">{{ t('payment.onlineRechargeUnavailable') }}</p>
             </div>
-            <template v-else>
             <div class="card p-6">
               <!-- 充值赠送活动文案（后台 Markdown 配置，空则不渲染） -->
               <div
@@ -114,7 +120,6 @@
               </span>
               <span v-else>{{ t('payment.createOrder') }} {{ formatSelectedPaymentAmount(totalAmount) }}</span>
             </button>
-            </template>
           </template>
           <!-- Subscribe Tab -->
           <template v-else-if="activeTab === 'subscription'">
@@ -284,7 +289,7 @@ import { useI18n } from 'vue-i18n'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import '@/styles/announcement-markdown.css'
-import { useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { usePaymentStore } from '@/stores/payment'
 import { useSubscriptionStore } from '@/stores/subscriptions'
@@ -714,7 +719,8 @@ const amountError = computed(() => {
 })
 
 const canSubmit = computed(() =>
-  validAmount.value > 0
+  enabledMethods.value.includes(selectedMethod.value)
+    && validAmount.value > 0
     && amountFitsMethod(payBaseAmount.value, selectedMethod.value)
     && selectedLimit.value?.available !== false
 )

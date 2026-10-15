@@ -2,6 +2,7 @@
 import json
 import os
 import urllib.request
+import urllib.error
 
 base = os.environ.get('SMOKE_BASE_URL', 'http://127.0.0.1:8080')
 
@@ -24,4 +25,12 @@ session = request('/api/v1/auth/login', {
 token = session['access_token']
 assert request('/api/v1/auth/me', token=token)['data']['role'] == 'admin'
 assert request('/api/v1/settings/public')['data']['site_name'] == 'WarpGate'
-print('Health, administrator login and WarpGate branding verified.')
+assert request('/api/v1/admin/settings', token=token)['code'] == 0
+assert request('/api/v1/admin/payment/config', token=token)['code'] == 0
+try:
+    request('/api/v1/admin/settings')
+except urllib.error.HTTPError as error:
+    assert error.code == 401, error.code
+else:
+    raise AssertionError('Administrator settings must still require authentication')
+print('Health, administrator login, branding, settings access and authentication verified.')

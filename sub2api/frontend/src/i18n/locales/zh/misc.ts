@@ -420,6 +420,7 @@ export default {
     tabSubscribe: '订阅',
     noPlans: '暂无可用订阅套餐',
     notAvailable: '充值功能暂未开放',
+    onlineRechargeUnavailable: '在线支付暂未开放，请使用充值码充值，或联系管理员开通支付渠道。',
     billingUnavailable: '充值与订阅均暂未开放，请联系管理员。',
     confirmSubscription: '确认订阅',
     confirmCancel: '确定要取消此订单吗？',

@@ -20,7 +20,7 @@ kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate rollout status deploy
 kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate port-forward service/warpgate 18080:8080
 ```
 
-再打开 http://localhost:18080/home 。首次登录后的管理员确认需由运营者本人完成。模型请求需要在后台配置自己的上游渠道。
+再打开 http://localhost:18080/home 。模型请求需要在后台配置自己的上游渠道。
 
 ## 持续发布
 
@@ -59,3 +59,13 @@ kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate scale deployment/rele
 3. 退出登录，通过“忘记密码”提交账号邮箱，使用收到的链接设置新密码。
 
 SMTP 授权码通过管理员页面保存，不写入仓库。当前未配置邮件服务器，因此尚未验证真实邮件投递。
+
+## 充值与运营设置
+
+测试站已开启支付功能和余额充值，用户侧提供“充值/订阅”“我的订单”、仪表盘余额卡充值按钮。充值页面提供金额选择与充值码入口；未配置可用支付渠道时，在线下单按钮禁用。
+
+管理员在支付配置中设置充值限额、费率、余额兑换比例及支付渠道，在兑换码管理中生成余额充值码。已有支付宝、微信、易支付、Stripe、Airwallex 等渠道实现，真实收款需要填写自己的商户配置，并让支付平台能访问回调地址。当前站点是内网地址，尚未接通真实收款。
+
+管理后台不再要求“部署与运营合规确认”，保留管理员身份验证、操作审计及支付回调验签。源代码许可证与版权说明继续保留。
+
+日常调试仅发布远端集群。本地 WarpGate Compose 服务已停止，需要时才手动启动；不要因发布应用而启动本地数据库或同步本地运行环境。

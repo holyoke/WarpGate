@@ -260,7 +260,7 @@ describe('API Client', () => {
       )
     })
 
-    it('部署与运营合规未确认时广播事件且保留登录态', async () => {
+    it('旧版本的 423 响应按普通错误处理，保留登录态且不触发确认弹窗', async () => {
       localStorage.setItem('auth_token', 'admin-token')
       const listener = vi.fn()
       window.addEventListener('admin-compliance-required', listener)
@@ -286,7 +286,7 @@ describe('API Client', () => {
       })
       apiClient.defaults.adapter = adapter
 
-      await expect(apiClient.get('/admin/users')).rejects.toEqual(
+      await expect(apiClient.get('/admin/users')).rejects.toMatchObject(
         expect.objectContaining({
           status: 423,
           code: 'ADMIN_COMPLIANCE_ACK_REQUIRED',
@@ -296,12 +296,7 @@ describe('API Client', () => {
         })
       )
 
-      expect(listener).toHaveBeenCalledTimes(1)
-      expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual(
-        expect.objectContaining({
-          version: 'v2026.06.10',
-        })
-      )
+      expect(listener).not.toHaveBeenCalled()
       expect(localStorage.getItem('auth_token')).toBe('admin-token')
 
       window.removeEventListener('admin-compliance-required', listener)

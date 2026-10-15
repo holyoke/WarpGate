@@ -396,6 +396,7 @@ export default {
     tabSubscribe: 'Subscribe',
     noPlans: 'No subscription plans available',
     notAvailable: 'Top-up is currently unavailable',
+    onlineRechargeUnavailable: 'Online payments are currently unavailable. Use a recharge code or contact the administrator to enable a payment provider.',
     billingUnavailable: 'Neither top-up nor subscriptions are currently available. Please contact the administrator.',
     confirmSubscription: 'Confirm Subscription',
     confirmCancel: 'Are you sure you want to cancel this order?',

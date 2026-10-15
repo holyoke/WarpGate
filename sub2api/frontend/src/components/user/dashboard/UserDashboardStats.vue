@@ -13,6 +13,9 @@
           <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.balance') }}</p>
           <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">${{ formatBalance(balance) }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('common.available') }}</p>
+          <router-link v-if="canRecharge" to="/purchase?tab=recharge" class="mt-2 inline-flex rounded-lg bg-primary-600 px-3 py-1 text-xs font-medium text-white hover:bg-primary-700">
+            {{ t('nav.recharge') }}
+          </router-link>
         </div>
       </div>
     </div>
@@ -227,6 +230,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores/app'
+import { FeatureFlags, isFeatureFlagEnabled } from '@/utils/featureFlags'
 import Icon from '@/components/icons/Icon.vue'
 import type { PlatformDashboardStats, UserDashboardStats as UserStatsType } from '@/api/usage'
 import type { PlatformQuotaItem } from '@/types'
@@ -248,6 +253,8 @@ const props = defineProps<{
   platformQuotas?: PlatformQuotaItem[] | null
 }>()
 const { t } = useI18n()
+const appStore = useAppStore()
+const canRecharge = computed(() => isFeatureFlagEnabled(FeatureFlags.payment) && appStore.cachedPublicSettings?.payment_balance_disabled !== true)
 
 const PLATFORM_LABELS: Record<string, string> = {
   anthropic: 'Claude',
