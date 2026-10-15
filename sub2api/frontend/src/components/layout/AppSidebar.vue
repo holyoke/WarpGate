@@ -752,7 +752,6 @@ const customMenuItemsForAdmin = computed(() => {
 const adminNavItems = computed((): NavItem[] => {
   const baseItems: NavItem[] = [
     { path: '/admin/dashboard', label: t('nav.dashboard'), icon: DashboardIcon },
-    { path: '/admin/ui-preview', label: t('uiPreview.title'), icon: ChartIcon },
     { path: '/admin/testing/keys', label: t('workspace.interfaceTesting'), icon: KeyIcon, children: [
       { path: '/admin/testing/keys', label: t('workspace.testKeys'), icon: KeyIcon },
       { path: '/admin/testing/usage', label: t('workspace.testUsage'), icon: ChartIcon }
