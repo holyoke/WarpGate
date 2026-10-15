@@ -24,9 +24,9 @@ kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate port-forward service/
 
 ## 持续发布
 
-集群运行 `release-agent` 发布控制器，每 120 秒查询 GitHub `master` 分支成功的 `deploy.yml` 工作流。只有本仓库 `push` 或手动触发的成功运行才会发布。控制器解析对应提交的 GHCR 镜像摘要，更新应用并等待健康检查；失败时尝试恢复上一应用镜像，并记录失败运行，避免反复部署。
+集群运行 `release-agent` 发布控制器，每 120 秒查询成功的 `cluster-release.yml` 工作流。该工作流通过 `workflow_run` 在 **WarpGate CI/CD** 成功结束后触发，只接受本仓库 `master` 分支的 `push` 或手动构建，并验证镜像已存在。控制器额外核对上游 CI 运行的仓库、工作流路径及提交，解析 GHCR 镜像摘要，更新应用并等待健康检查；失败时尝试恢复上一应用镜像，并记录失败运行，避免反复部署。
 
-流程：推送 master → GitHub Actions 测试/构建/启动验证/发布镜像 → 集群主动拉取成功运行 → 更新 WarpGate。构建时间之外，通常最多再等 2 分钟开始更新。
+流程：推送 master → **WarpGate CI/CD** 测试/构建/启动验证/发布镜像 → `workflow_run` 触发 **WarpGate Cluster Release** → 集群主动拉取成功的发布请求 → 更新 WarpGate。构建时间之外，通常最多再等 2 分钟开始更新。Cluster Release 的绿色状态表示发布请求及镜像校验成功，应用实际就绪状态以集群控制器日志和 Deployment 注解为准。
 
 控制器仅通过 HTTPS 向外连接 GitHub 和 GHCR，使用公开仓库的只读接口，不需要 GitHub Token。集群管理员 kubeconfig 留在本机。专用 ServiceAccount 只能读取和修改当前命名空间的 `warpgate` Deployment，不能读取 Secrets、修改数据库或操作其他命名空间。
 

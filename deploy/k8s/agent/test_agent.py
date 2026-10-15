@@ -1,4 +1,5 @@
 import unittest
+import json
 from unittest.mock import patch
 import agent
 
@@ -20,6 +21,23 @@ class ReleaseTests(unittest.TestCase):
     def test_manual_run_can_be_deployed(self):
         run = self.run_record(event='workflow_dispatch')
         self.assertEqual(agent.select_release([run]), run)
+
+    def test_chained_release_uses_built_revision_instead_of_default_branch_head(self):
+        run = self.run_record(event='workflow_run', head_sha='b' * 40,
+                              display_title='WarpGate release 123 ' + 'a' * 40)
+        release = agent.select_release([run])
+        self.assertEqual(release['head_sha'], 'a' * 40)
+        self.assertEqual(release['source_run_id'], 123)
+        self.assertIsNone(agent.select_release([{**run, 'display_title': 'WarpGate release 123 latest'}]))
+
+    def test_chained_release_checks_upstream_repository_workflow_and_sha(self):
+        for change in [{}, {'path': '.github/workflows/other.yml'}, {'head_sha': 'b' * 40},
+                       {'conclusion': 'failure'}, {'head_repository': {'full_name': 'someone/fork'}}]:
+            with self.subTest(change=change):
+                agent.trusted_source.cache_clear()
+                source = self.run_record(path='.github/workflows/deploy.yml', **change) if 'path' not in change else self.run_record(**change)
+                with patch.object(agent, 'http', return_value=(json.dumps(source).encode(), {})):
+                    self.assertEqual(agent.trusted_source(123, 'a' * 40), not change)
 
     def test_rollout_requires_observed_generation_and_availability(self):
         deployment = {'spec': {'replicas': 1}, 'status': {

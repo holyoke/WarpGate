@@ -10,11 +10,12 @@ import sys
 import time
 import urllib.parse
 import urllib.request
+from functools import lru_cache
 from pathlib import Path
 
 LOG = logging.getLogger('warpgate-release')
 REPO = os.environ.get('GITHUB_REPOSITORY', 'holyoke/WarpGate')
-WORKFLOW = os.environ.get('GITHUB_WORKFLOW', 'deploy.yml')
+WORKFLOW = os.environ.get('GITHUB_WORKFLOW', 'cluster-release.yml')
 BRANCH = os.environ.get('GITHUB_BRANCH', 'master')
 PACKAGE = os.environ.get('IMAGE_REPOSITORY', 'holyoke/warpgate')
 NAMESPACE = os.environ.get('NAMESPACE', 'warpgate')
@@ -53,19 +54,43 @@ def kube(path='', patch=None):
 def select_release(runs):
     for run in runs:
         if (run.get('status') == 'completed' and run.get('conclusion') == 'success'
-                and run.get('event') in ('push', 'workflow_dispatch')
+                and run.get('event') in ('push', 'workflow_dispatch', 'workflow_run')
                 and run.get('head_branch') == BRANCH
                 and run.get('head_repository', {}).get('full_name', '').lower() == REPO.lower()
                 and re.fullmatch(r'[0-9a-f]{40}', run.get('head_sha', ''))):
+            if run.get('event') == 'workflow_run':
+                # workflow_run.head_sha is the default-branch HEAD, not necessarily
+                # the commit built by its upstream CI. Use the explicit source ID/SHA.
+                match = re.fullmatch(r'WarpGate release ([1-9][0-9]*) ([0-9a-f]{40})', run.get('display_title', ''))
+                if not match:
+                    continue
+                return {**run, 'source_run_id': int(match[1]), 'head_sha': match[2]}
             return run
     return None
+
+
+@lru_cache(maxsize=64)
+def trusted_source(run_id, revision):
+    raw, _ = http(f'https://api.github.com/repos/{REPO}/actions/runs/{run_id}',
+                  headers={'User-Agent': 'WarpGate-Release-Agent', 'Accept': 'application/vnd.github+json'})
+    source = json.loads(raw)
+    return (source.get('path') == '.github/workflows/deploy.yml'
+            and source.get('event') in ('push', 'workflow_dispatch')
+            and source.get('head_sha') == revision
+            and select_release([source]) is not None)
 
 
 def latest_release():
     query = urllib.parse.urlencode({'branch': BRANCH, 'status': 'success', 'per_page': 10})
     url = f'https://api.github.com/repos/{REPO}/actions/workflows/{WORKFLOW}/runs?{query}'
     raw, _ = http(url, headers={'User-Agent': 'WarpGate-Release-Agent', 'Accept': 'application/vnd.github+json'})
-    return select_release(json.loads(raw).get('workflow_runs', []))
+    runs = json.loads(raw).get('workflow_runs', [])
+    for run in runs:
+        release = select_release([run])
+        if release and (release.get('event') != 'workflow_run'
+                        or trusted_source(release['source_run_id'], release['head_sha'])):
+            return release
+    return None
 
 
 def image_digest(revision):

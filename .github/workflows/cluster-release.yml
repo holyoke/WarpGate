@@ -1,0 +1,48 @@
+name: WarpGate Cluster Release
+run-name: WarpGate release ${{ github.event.workflow_run.id }} ${{ github.event.workflow_run.head_sha }}
+
+on:
+  workflow_run:
+    workflows: [WarpGate CI/CD]
+    types: [completed]
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: warpgate-cluster-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: >-
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      (github.event.workflow_run.event == 'push' || github.event.workflow_run.event == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+      - name: Verify immutable image and approve in-cluster release
+        env:
+          RELEASE_SHA: ${{ github.event.workflow_run.head_sha }}
+          SOURCE_RUN_URL: ${{ github.event.workflow_run.html_url }}
+        run: |
+          python3 - <<'PY'
+          import os, re, sys
+          sys.path.insert(0, 'deploy/k8s/agent')
+          import agent
+          revision = os.environ['RELEASE_SHA']
+          assert re.fullmatch(r'[0-9a-f]{40}', revision)
+          image = agent.image_digest(revision)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+              summary.write(f'### Cluster release approved\n\nCommit: `{revision}`\n\nImage: `{image}`\n\n')
+              summary.write(f"[Successful CI run]({os.environ['SOURCE_RUN_URL']})\n\n")
+              summary.write('The internal cluster pulls this successful workflow run within 120 seconds. '
+                            'This job confirms the release request; cluster readiness and rollback are recorded by release-agent.\n')
+          print('Immutable image verified; release-agent may deploy this revision.')
+          PY

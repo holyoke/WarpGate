@@ -61,7 +61,7 @@ spec:
           command: [python3, -u, /opt/agent/agent.py]
           env:
             - { name: GITHUB_REPOSITORY, value: holyoke/WarpGate }
-            - { name: GITHUB_WORKFLOW, value: deploy.yml }
+            - { name: GITHUB_WORKFLOW, value: cluster-release.yml }
             - { name: GITHUB_BRANCH, value: master }
             - { name: IMAGE_REPOSITORY, value: holyoke/warpgate }
             - { name: POLL_INTERVAL_SECONDS, value: '120' }
