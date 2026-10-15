@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="WarpGate">
+  <defs><linearGradient id="warp" x2="1" y2="1"><stop stop-color="#818cf8"/><stop offset="1" stop-color="#4338ca"/></linearGradient></defs>
+  <rect width="64" height="64" rx="18" fill="#16172b"/>
+  <path d="M10 20h8l5 20 7-20h7l5 20 5-20h8L45 47h-8l-4-13-5 13h-8z" fill="url(#warp)"/>
+  <circle cx="50" cy="13" r="3" fill="#c7d2fe"/>
+</svg>
