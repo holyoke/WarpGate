@@ -1,26 +1,36 @@
-# Kubernetes 测试部署
+# WarpGate Kubernetes 部署
 
-部署独立命名空间 `warpgate`，不使用 GPU。包括 WarpGate、PostgreSQL 16、Redis 7 和三个 `local-path` 持久化卷。应用使用已通过 CI 完整验证的镜像摘要；NodePort 为 `30488`。
-
-当前测试集群中，PostgreSQL 固定在 `l20c-07-wanghuaizhen`，利用该节点已有的 PostgreSQL 镜像缓存。迁移至其他集群前，需要调整 `database.yaml` 的 `nodeSelector`。
-
-本机 PowerShell 7：
+通用安装入口为根目录 `install.ps1 k8s` / `install.sh k8s`。使用 Python 3.9+ 和 kubectl，连接已有集群；不需要 GPU，也不在本机启动 Docker 服务。
 
 ```powershell
-.\deploy\k8s\deploy.ps1 -Kubeconfig 'C:\path\kubeconfig.yaml'
-kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate get pods,pvc,svc
-kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate rollout status deployment/warpgate
+.\install.ps1 k8s --kubeconfig 'C:\path\kubeconfig.yaml'
 ```
 
-首次部署会创建随机 Secret，登录信息只保存在本机 `.local/cluster-admin.txt`。重复执行保留已有 Secret 和数据，不覆盖密码。kubeconfig 不复制到项目或仓库。
+Linux / macOS 使用 `sh install.sh k8s --kubeconfig ~/.kube/config`。安装器等待 PostgreSQL、Redis、WarpGate 三个 Deployment 就绪后才报告成功。初始化凭据在 `.local/install-warpgate-admin.txt`；已有 Secret 不覆盖，网页修改的密码不重置。
 
-浏览器打开 `http://<可访问的节点IP>:30488/home`。若无法访问节点端口，可临时转发：
+## 存储和访问
 
-```powershell
-kubectl --kubeconfig 'C:\path\kubeconfig.yaml' -n warpgate port-forward service/warpgate 18080:8080
+默认创建 `warpgate` 命名空间、三个单副本工作负载，以及数据库 5Gi、缓存 1Gi、应用 1Gi 三个 PVC。使用集群默认 StorageClass，可通过 `--storage-class` 指定；不绑定任何测试集群节点。部署前确保存在可用存储类，节点能拉取应用、PostgreSQL 16 和 Redis 7 镜像。
+
+使用 `--namespace` 隔离其他环境，使用 `--node-port` 避免集群端口冲突。已有 PVC 原样保留，指定新存储类不会迁移已有数据。默认 NodePort 为 `30488`，访问 `http://<节点IP>:30488/home`；无法直连时使用相同 kubeconfig/context 转发：
+
+```sh
+kubectl --kubeconfig /path/to/config -n warpgate port-forward service/warpgate 18080:8080
 ```
 
-再打开 http://localhost:18080/home 。模型请求需要在后台配置自己的上游渠道。
+打开 <http://localhost:18080>。节点端口是否可达由网络和防火墙决定。此方案适合测试和单实例运行，数据库不提供高可用；正式运营需按业务要求另行规划备份、HTTPS 和可用性。
+
+离线预览：
+
+```sh
+python3 install/install.py k8s --namespace warpgate-test --dry-run > warpgate-preview.json
+```
+
+渲染不生成 Secret，不连接集群。通用模板位于 `install/kubernetes.json`，与现有测试集群的 `deploy/k8s/*.yaml` 运维配置分开。
+
+## 既有测试集群配置
+
+本目录原有 `deploy.ps1` / `kustomization.yaml` 及 YAML 保留给已配置的测试环境，包含专用存储、节点和发布控制器设置，不作为新集群安装入口。不要用它们覆盖通用安装。现有环境继续沿用下列发布链路；新安装不会自动跟随本仓库 master。
 
 ## 持续发布
 
