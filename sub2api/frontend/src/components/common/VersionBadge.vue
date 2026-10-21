@@ -317,8 +317,9 @@
                   </div>
                 </div>
 
-                <!-- Update button -->
+                <!-- Container releases are deployed with the installer or CI/CD, not binary replacement. -->
                 <button
+                  v-if="releaseInfo?.assets?.length"
                   @click="handleUpdate"
                   :disabled="updating"
                   class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
@@ -651,9 +652,7 @@ import {
 import { useClipboard } from '@/composables/useClipboard'
 import Icon from '@/components/icons/Icon.vue'
 
-const GITHUB_REPO = 'Wei-Shaw/sub2api'
-// Docker Hub image published by CI (tags carry no "v" prefix, e.g. weishaw/sub2api:0.1.146)
-const DOCKER_IMAGE = 'weishaw/sub2api'
+const GITHUB_REPO = 'holyoke/WarpGate'
 
 const { t } = useI18n()
 
@@ -710,17 +709,20 @@ const manualTabs = computed(() => [
 const scriptRollbackCommand = computed(() => {
   if (!selectedRollbackVersion.value) return ''
   const tag = `v${selectedRollbackVersion.value}`
-  return `curl -sSL https://raw.githubusercontent.com/${GITHUB_REPO}/${tag}/deploy/install.sh | sudo bash -s -- rollback ${tag}`
+  return `# WarpGate: ${t('version.viewRelease')}
+# https://github.com/${GITHUB_REPO}/releases/tag/${tag}
+# https://github.com/${GITHUB_REPO}/blob/${tag}/deploy/README.md`
 })
 
 const dockerRollbackCommand = computed(() => {
   if (!selectedRollbackVersion.value) return ''
   return [
     `# ${t('version.dockerEditCompose')}`,
-    `image: ${DOCKER_IMAGE}:${selectedRollbackVersion.value}`,
+    `# https://github.com/${GITHUB_REPO}/releases/tag/v${selectedRollbackVersion.value}`,
+    '# ghcr.io/holyoke/warpgate@sha256:<digest from the selected release>',
     '',
     `# ${t('version.dockerRecreate')}`,
-    'docker compose up -d'
+    '# Follow the selected release instructions with --image; preserve the existing data directory.'
   ].join('\n')
 })
 
