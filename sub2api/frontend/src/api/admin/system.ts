@@ -5,6 +5,7 @@
 import { apiClient } from '../client'
 
 export interface ReleaseInfo {
+  assets?: { name: string; download_url: string; size: number }[]
   name: string
   body: string
   published_at: string
