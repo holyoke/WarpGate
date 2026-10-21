@@ -74,7 +74,6 @@ jobs:
           load: true
           tags: ${{ steps.image.outputs.ref }}
           build-args: |
-            VERSION=0.1.0-${{ github.sha }}
             COMMIT=${{ github.sha }}
           labels: |
             org.opencontainers.image.title=WarpGate
